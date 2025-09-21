@@ -5,6 +5,8 @@ import * as faceapi from "face-api.js";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import useLabels from "@/components/useLabels"; // MongoDB hook
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 
 export default function FaceRecognizer() {
   const videoRef = useRef(null);
@@ -49,7 +51,6 @@ export default function FaceRecognizer() {
       }
     }
   };
-
 
   useEffect(() => {
     let stream;
@@ -206,6 +207,12 @@ export default function FaceRecognizer() {
 
     setFinished(true);
   };
+
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "attendance" });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col items-center justify-start py-12 px-4 relative overflow-hidden">

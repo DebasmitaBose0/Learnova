@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 
 export default function AboutPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -37,12 +39,18 @@ export default function AboutPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-    const companyStats = [
-      { number: "Upcoming", label: "Institution Partnerships", icon: BookOpen },
-      { number: "Upcoming", label: "Student Tracking", icon: Users },
-      { number: "70%", label: "Time Saved", icon: TrendingUp },
-      { number: "98%", label: "Accuracy Rate", icon: Award },
-    ];
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "about" });
+    }
+  }, []);
+
+  const companyStats = [
+    { number: "Upcoming", label: "Institution Partnerships", icon: BookOpen },
+    { number: "Upcoming", label: "Student Tracking", icon: Users },
+    { number: "70%", label: "Time Saved", icon: TrendingUp },
+    { number: "98%", label: "Accuracy Rate", icon: Award },
+  ];
 
   const teamMembers = [
     {

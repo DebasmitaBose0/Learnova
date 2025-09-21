@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 import React from "react";
 import { Upload, User, Mail, Hash, Sparkles, CheckCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "register" });
+    }
+  }, []);
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [rollNo, setRollNo] = useState("");

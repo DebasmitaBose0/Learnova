@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 import { Button } from "@/components/ui/button";
 import {
   User,
@@ -29,6 +31,11 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 
 export default function ProfilePage() {
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "profile" });
+    }
+  }, []);
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");

@@ -1,4 +1,9 @@
+
 "use client";
+
+import { useEffect } from "react";
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +41,11 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 
 export default function ActivityDashboard() {
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "dashboard" });
+    }
+  }, []);
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState("week");
   const [selectedView, setSelectedView] = useState("overview");

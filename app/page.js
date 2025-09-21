@@ -1,6 +1,6 @@
 "use client";
 import { Navbar } from "@/components/Navbar";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import SplitText from "@/components/ui-block/SplitText";
 import DarkVeil from "@/components/ui-block/DarkVeil";
 import {
@@ -25,8 +25,10 @@ import {
   TrendingUp,
   Award,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { analytics } from "@/lib/firebaseConfig";
+import { logEvent } from "firebase/analytics";
 
 export default function AboutPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -47,6 +49,12 @@ export default function AboutPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "page_view", { page: "home" });
+    }
+  }, []);
+
   const handleAnimationComplete = () => {
     console.log("animation completed ");
   };
@@ -65,7 +73,6 @@ export default function AboutPage() {
     { number: "70%", label: "Time Saved", icon: TrendingUp },
     { number: "98%", label: "Accuracy Rate", icon: Award },
   ];
-
 
   const teamMembers = [
     {
@@ -117,7 +124,6 @@ export default function AboutPage() {
       color: "from-amber-500 to-orange-500",
     },
   ];
-
 
   return (
     <>

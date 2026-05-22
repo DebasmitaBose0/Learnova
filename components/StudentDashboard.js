@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { useAuth } from "@/hooks/useAuth";
+import AttendanceChart from "./AttendanceChart";
+import Timetable from "./Timetable";
+
 
 const StudentDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -578,10 +581,15 @@ const StudentDashboard = () => {
               )}
             </div>
 
+           {/* Attendance Chart */}
+            <AttendanceChart />
+
+            {/* Timetable */}
+            <Timetable role="student" />
+
             {/* Quick Stats */}
             <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
               <h2 className="text-xl font-bold text-white mb-6">Quick Stats</h2>
-
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">

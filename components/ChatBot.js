@@ -415,8 +415,11 @@ const LearnovaChatbot = () => {
   // ---------------------------------------------------------------------------
   // Theme tokens
   // ---------------------------------------------------------------------------
+  
   const themeTokens = {
-    bg: isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900",
+    bg: isDarkMode 
+      ? "bg-gray-950/90 backdrop-blur-xl text-white" 
+      : "bg-white/95 backdrop-blur-xl text-gray-900",
     header: "bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700",
     border: isDarkMode ? "border-gray-700" : "border-gray-200",
     botMsg: isDarkMode
@@ -467,7 +470,7 @@ const LearnovaChatbot = () => {
   // ---------------------------------------------------------------------------
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex flex-col ${themeTokens.bg} rounded-xl shadow-2xl transition-all duration-300 border ${themeTokens.border}} ${
+      className={`fixed bottom-6 right-6 z-50 flex flex-col ${themeTokens.bg} rounded-xl shadow-2xl transition-all duration-300 border ${themeTokens.border} ${
         isMinimized ? "w-72 h-16 overflow-hidden" : "w-96 h-[660px]"
       }`}
     >
@@ -626,7 +629,7 @@ const LearnovaChatbot = () => {
           </div>
 
           {/* ── Input ─────────────────────────────────────────────────────── */}
-          <div className="p-4 border-t ${themeTokens.border} shrink-0">
+          <div className={`p-4 border-t ${themeTokens.border} shrink-0`}>
             <div className="flex items-end gap-3">
               <textarea
                 ref={textareaRef}

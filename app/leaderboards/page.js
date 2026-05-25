@@ -35,7 +35,7 @@ const Reveal = ({ children, className = "", delay = 0, y = 20 }) => (
 );
 
 // Reusable Avatar component utilizing Next.js Image optimization and robust fallbacks
-function AvatarRenderer({ avatar, name, size = 80 }) {
+function AvatarRenderer({ avatar, name, size = 80, priority = false }) {
   const [imgSrc, setImgSrc] = useState(
     avatar && (avatar.startsWith("http") || avatar.startsWith("/")) ? avatar : null
   );
@@ -51,6 +51,7 @@ function AvatarRenderer({ avatar, name, size = 80 }) {
         alt={`${name}'s avatar`}
         width={size}
         height={size}
+        priority={priority}
         className="w-full h-full object-cover rounded-full"
         onError={() => setImgSrc(null)}
       />
@@ -266,7 +267,7 @@ export default function LeaderboardsPage() {
                             </motion.div>
                           )}
                           <div className={`w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center text-3xl sm:text-4xl bg-gray-800 rounded-full border-4 ${style.border} shadow-lg mb-2 z-10 ${isFirst ? 'scale-110' : ''} overflow-hidden`}>
-                            <AvatarRenderer avatar={user.avatar} name={user.name} size={isFirst ? 80 : 64} />
+                            <AvatarRenderer avatar={user.avatar} name={user.name} size={isFirst ? 80 : 64} priority={true} />
                           </div>
                           <span className="font-bold text-foreground text-xs sm:text-sm text-center truncate w-full px-2">{user.name}</span>
                           <span className={`font-black ${style.color} text-sm sm:text-base`}>{user.score} pts</span>

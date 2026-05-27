@@ -1,70 +1,57 @@
+import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
-import { verifyFirebaseToken, getUserProfile } from "@/lib/firebase-admin";
-import { jsonError, jsonSuccess } from "@/lib/api-response";
+import { requireRole } from "@/lib/rbac";
+import { withErrorHandler } from "@/lib/error-handler";
+import { jsonSuccess } from "@/lib/api-response";
+import { AppError } from "@/lib/errors";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { escapeRegex, sanitizeSortField } from "@/utils/mongoUtils";
 
-export async function GET(request) {
-  try {
-    const authorization = request.headers.get("authorization");
-    const token = authorization?.split(" ")[1];
+const ALLOWED_SORT_FIELDS = new Set([
+  "createdAt",
+  "updatedAt",
+  "status",
+  "date",
+  "studentEmail",
+  "reason",
+]);
 
-    const authResult = await verifyFirebaseToken(token);
+export const GET = withErrorHandler(async (request) => {
+  const { payload: decodedToken } = await requireRole(request, ["admin", "teacher"]);
+  const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
+  const rateLimitResult = await checkRateLimit(`exceptions_all_${ip}_${decodedToken.uid}`);
+  if (!rateLimitResult.allowed) {
+    throw new AppError("Too many attempts. Please try again later.", 429);
+  }
+  const { searchParams } = new URL(request.url);
 
-    if (!authResult.valid) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          reason: authResult.reason,
-        },
-        { status: 401 }
-      );
+    // Pagination - extract and validate query parameters
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+    
+    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
+    const limit = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam, 10))) : 20;
+
+    // Validate pagination parameters
+    if (isNaN(page) || isNaN(limit)) {
+      const { ValidationError } = require("@/lib/errors");
+      throw new ValidationError("Invalid pagination parameters");
     }
-
-    const decodedToken = authResult.decodedToken;
-
-
-    // Fetch user profile
-    const profile = await getUserProfile(decodedToken.uid);
-
-    if (!profile) {
-      return jsonError("User profile not found", 404);
-    }
-
-    // Restrict access
-    if (
-      profile.role !== "admin" &&
-      profile.role !== "teacher"
-    ) {
-      return jsonError("Forbidden", 403);
-    }
-
-    const { searchParams } = new URL(request.url);
-
-    // Pagination
-    const page = Math.max(
-      1,
-      parseInt(searchParams.get("page") || "1", 10)
-    );
-
-    const limit = Math.min(
-      100,
-      Math.max(
-        1,
-        parseInt(searchParams.get("limit") || "20", 10)
-      )
-    );
 
     const skip = (page - 1) * limit;
 
-    // Search
-    const search = searchParams.get("search") || "";
+    // Search — escape metacharacters and cap length to prevent ReDoS
+    const rawSearch = searchParams.get("search") || "";
+    const search = escapeRegex(rawSearch);
 
-    // Sorting
-    const sortBy = searchParams.get("sortBy") || "createdAt";
+    // Sorting — validate against an explicit allowlist to prevent field-name injection
+    const sortBy = sanitizeSortField(
+      searchParams.get("sortBy"),
+      ALLOWED_SORT_FIELDS,
+      "createdAt"
+    );
 
-    const sortOrder =
-      searchParams.get("sortOrder") === "asc"
-        ? 1
-        : -1;
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
     const db = await connectDb();
     const collection = db.collection("exceptions");
@@ -119,10 +106,6 @@ export async function GET(request) {
           hasNextPage: page < totalPages,
         },
       },
-      200
+      200,
     );
-  } catch (error) {
-    console.error("Exception fetch error:", error);
-    return jsonError("Internal server error", 500);
-  }
-}
+});

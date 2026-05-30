@@ -1,0 +1,49 @@
+name: PR Compliance & Quality Gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  pr-validation:
+    name: Validate Checklist & Guidelines
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate PR Title Format
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|automation)(\([a-zA-Z0-9_-]+\))?: .+"
+          if [[ ! "$TITLE" =~ $REGEX ]]; then
+            echo "❌ PR Title does not match conventional commits format."
+            echo "Format required: <type>(optional-scope): <description>"
+            echo "Example: feat(navbar): resolve responsive menu toggle"
+            exit 1
+          fi
+          echo "✅ PR Title matches conventional commits standard."
+
+      - name: Validate Checklist Completeness & Linked Issues
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          
+          # Check if PR body contains unresolved markdown checkboxes
+          if echo "$BODY" | grep -q "\[ \]"; then
+            echo "❌ Uncompleted tasks found in your PR checklist. Please review your checkboxes."
+            exit 1
+          fi
+          
+          # Check for linked issues
+          LINK_REGEX="(Closes|Fixes|Resolves) #[0-9]+"
+          if [[ ! "$BODY" =~ $LINK_REGEX ]]; then
+            echo "⚠️ No linked issue found in the description (e.g. Closes #123)."
+            echo "We strongly recommend linking related issues to ensure proper GSOC/GSSOC point tracking."
+          else
+            echo "✅ Verified associated issue linking."
+          fi
+          
+          echo "✅ All compliance checks passed!"

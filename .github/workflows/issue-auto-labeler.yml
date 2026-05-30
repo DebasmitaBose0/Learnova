@@ -1,0 +1,86 @@
+name: Issue Auto-Labeler & Welcome Assistant
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-label:
+    name: Keywords Analyzer & Triager
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-Label Based on Keywords
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const labelsToAdd = new Set();
+
+            // Keywords mappings
+            const mapping = {
+              'bug': ['bug', 'error', 'fail', 'broken', 'crash', 'issue', 'not working', 'leak', 'collision'],
+              'enhancement': ['feature', 'feat', 'improve', 'enhance', 'upgrade', 'add', 'polish', 'new component'],
+              'documentation': ['docs', 'document', 'readme', 'contributing', 'guidelines', 'comment', 'architecture'],
+              'security': ['security', 'token', 'csp', 'xss', 'middleware', 'sanitize', 'auth', 'permissions'],
+              'performance': ['perf', 'slow', 'loading', 'lazy', 'memo', 'render', 'speed', 'optimization'],
+              'ui-ux': ['ui', 'ux', 'responsive', 'glassmorphic', 'color', 'animation', 'contrast', 'layout']
+            };
+
+            for (const [label, keywords] of Object.entries(mapping)) {
+              for (const keyword of keywords) {
+                if (title.includes(keyword) || body.includes(keyword)) {
+                  labelsToAdd.add(label);
+                  break;
+                }
+              }
+            }
+
+            if (labelsToAdd.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: Array.from(labelsToAdd)
+              });
+              console.log(`Successfully added labels: ${Array.from(labelsToAdd).join(', ')}`);
+            } else {
+              // Default label for untriaged issues
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs-triage']
+              });
+            }
+
+      - name: Welcome Comment Poster
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const sender = issue.user.login;
+
+            // Avoid double welcome on issue edits
+            if (context.payload.action === 'opened') {
+              const welcomeMessage = `### 👋 Welcome, @${sender}!
+
+              Thank you for opening this issue! The Learnova community greatly appreciates your contribution.
+              
+              - 🤖 Our automated triage system has analyzed your submission and applied the relevant tags.
+              - 📌 Please ensure your proposal details the **Problem**, **Expected Outcome**, and a clean **Proposed Solution**.
+              - ⚠️ Remember our per-contributor limits (maximum 3 open issues at a time).
+              
+              A maintainer will review your issue shortly. Happy contributing! 🎓`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: welcomeMessage
+              });
+            }

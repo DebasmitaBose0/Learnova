@@ -4,6 +4,8 @@ import DarkVeil from "@/components/ui-block/DarkVeil";
 import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import FormSkeleton from "@/components/ui/FormSkeleton";
 import { CONTACT_INFO } from "@/constants/contact";
 import {
@@ -25,6 +27,8 @@ import toast from "react-hot-toast";
 
 export default function Contact() {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +52,7 @@ export default function Contact() {
   const [cooldown, setCooldown] = useState(false);
   const [cooldownTimer, setCooldownTimer] = useState(0);
   const cooldownIntervalRef = useRef(null);
+  const [charCount, setCharCount] = useState(0);
 
   useEffect(() => {
     const savedDraft = localStorage.getItem("learnova_contact_form_draft");
@@ -88,12 +93,18 @@ export default function Contact() {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedFormData = { ...formData, [name]: value };
-    setFormData(updatedFormData);
-    localStorage.setItem("learnova_contact_form_draft", JSON.stringify(updatedFormData));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
+  const { name, value } = e.target;
+  const updatedFormData = { ...formData, [name]: value };
+  setFormData(updatedFormData);
+  localStorage.setItem("learnova_contact_form_draft", JSON.stringify(updatedFormData));
+
+  if (name === "message") {
+    setCharCount(value.length);
+  }
+
+  setErrors((prev) => ({ ...prev, [name]: "" }));
+};
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -110,6 +121,15 @@ export default function Contact() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Please log in to your Learnova account to submit this form.");
+      setSubmitStatus({
+        type: "error",
+        message: "You are being redirected to the login page.",
+      });
+      setTimeout(() => router.push("/auth"), 2000);
+      return;
+    }
     const COOLDOWN_MS = 60 * 1000;
     const lastSubmit = localStorage.getItem("learnova_contact_last_submit");
     if (lastSubmit && Date.now() - parseInt(lastSubmit) < COOLDOWN_MS) {
@@ -140,10 +160,22 @@ export default function Contact() {
     setIsSubmitting(true);
     setSubmitStatus(null);
     try {
+      const templateParams = {
+        from_name: formData.name,
+        reply_to: formData.email,
+        from_email: formData.email,
+        company_name: formData.company || "Not Provided",
+        message: formData.message,
+        subject: `New Contact Form Message from ${formData.name}`,
+        to_email: "test-admin@learnova.com",
+        to_name: "Learnova Admin",
+        email: "test-admin@learnova.com",
+        receiver_email: "test-admin@learnova.com",
+      };
       await emailjs.send(
         process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
         process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-        { ...formData },
+        templateParams,
         process.env.NEXT_PUBLIC_EMAILJS_USER_ID
       );
       setSubmitStatus({
@@ -153,6 +185,7 @@ export default function Contact() {
       toast.success("Message sent successfully!");
       localStorage.removeItem("learnova_contact_form_draft");
       setFormData({ name: "", email: "", company: "", message: "" });
+      setCharCount(0);
       setErrors({});
     } catch (error) {
       console.error("[Contact Form] EmailJS error:", error);
@@ -410,11 +443,25 @@ export default function Contact() {
                             maxLength={1000}
                             className={`${inputClass} resize-none`}
                           />
-                          {/* FIX: Reserve space for error message to avoid jump */}
+                          {/* Live character counter — error replaces it after a submit attempt */}
                           <div className="min-h-[1.25rem]">
-                            {errors.message && (
+                            {errors.message ? (
                               <p className="text-red-500 dark:text-red-400 text-xs font-medium">
                                 {errors.message}
+                              </p>
+                            ) : (
+                              <p
+                                className={`text-xs font-medium transition-colors duration-200 ${
+                                  charCount >= 10 && charCount <= 500
+                                    ? "text-green-600 dark:text-green-400"
+                                    : charCount > 500
+                                    ? "text-orange-500 dark:text-orange-400"
+                                    : "text-red-500 dark:text-red-400"
+                                }`}
+                              >
+                                {charCount < 10
+                                  ? `${charCount} / 10 minimum characters`
+                                  : `${charCount} / 500`}
                               </p>
                             )}
                           </div>

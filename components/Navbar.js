@@ -232,13 +232,22 @@ export function Navbar() {
         return "/institute/dashboard";
       case "admin":
         return "/admin/dashboard";
+      case "parent":
+        return "/parent/dashboard";
       default:
         return "/profile";
     }
   };
 
+  const isRouteActive = (href) => {
+    if (!pathname) return false;
+    if (href === "/") return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   const navigationItems = [
     { href: "/", label: "Home", icon: Home },
+    { href: "/about", label: "About", icon: BookOpen },
     { href: "/wellness", label: "Wellness", icon: HeartPulse },
     { href: "/productivity", label: "Focus", icon: Sparkles },
     { href: "/activity", label: "Activities", icon: Activity },
@@ -365,7 +374,7 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   label={item.label}
-                  isActive={pathname === item.href}
+                  isActive={isRouteActive(item.href)}
                 />
               ))}
             </div>

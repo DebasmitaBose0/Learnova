@@ -1,11 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
 export default function Error({ error, reset }) {
   const t = useTranslations('common');
 
-  console.error('Runtime error:', error?.message ?? 'Unknown error');
+  useEffect(() => {
+    console.error('Runtime error:', error?.message ?? 'Unknown error');
+  }, [error]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center">

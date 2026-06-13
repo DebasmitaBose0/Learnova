@@ -480,7 +480,10 @@ export async function middleware(request) {
   }
 
   const tokenFromCookie = request.cookies.get("authToken")?.value || null;
-  if (tokenFromCookie) {
+  const isStateChangingAdminApi = pathname.startsWith("/api/admin") && !["GET", "HEAD", "OPTIONS"].includes(request.method);
+  const hasBearerToken = request.headers.get("authorization")?.startsWith("Bearer ");
+
+  if (tokenFromCookie || (isStateChangingAdminApi && !hasBearerToken)) {
     try {
       validateCsrfOriginAndReferer(request);
       validateCsrfRequest(request);

@@ -265,3 +265,48 @@ describe("Middleware Role-Based Redirects", () => {
     expect(getRedirectTarget(null)).toBe("/profile");
   });
 });
+
+describe("Middleware CSRF Verification on Admin Endpoints", () => {
+  it("enforces CSRF validation on unsafe admin endpoints relying on cookies", async () => {
+    const mod = await import("@/middleware");
+    const csrf = await import("@/lib/csrf");
+    csrf.validateCsrfRequest.mockClear();
+
+    const request = new Request("http://localhost/api/admin/sessions/terminate", {
+      method: "POST",
+      headers: {
+        "cookie": "authToken=mock-cookie-token",
+      }
+    });
+    request.nextUrl = new URL("http://localhost/api/admin/sessions/terminate");
+    request.cookies = {
+      get: (name) => {
+        if (name === "authToken") return { value: "mock-cookie-token" };
+        return null;
+      }
+    };
+
+    await mod.middleware(request);
+    expect(csrf.validateCsrfRequest).toHaveBeenCalled();
+  });
+
+  it("bypasses CSRF validation on unsafe admin endpoints using Bearer tokens", async () => {
+    const mod = await import("@/middleware");
+    const csrf = await import("@/lib/csrf");
+    csrf.validateCsrfRequest.mockClear();
+
+    const request = new Request("http://localhost/api/admin/sessions/terminate", {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer mock-bearer-token",
+      }
+    });
+    request.nextUrl = new URL("http://localhost/api/admin/sessions/terminate");
+    request.cookies = {
+      get: () => null
+    };
+
+    await mod.middleware(request);
+    expect(csrf.validateCsrfRequest).not.toHaveBeenCalled();
+  });
+});

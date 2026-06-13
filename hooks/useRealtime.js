@@ -15,8 +15,8 @@ export function useRealtime(handlers, { enabled = true, pollInterval = FALLBACK_
   const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
   const isMountedRef = useRef(true);
   const handlersRef = useRef(handlers);
+  const fallbackTimerRef = useRef(null);
   const pollTimerRef = useRef(null);
-  const lastPollUrlRef = useRef(null);
 
   handlersRef.current = handlers;
 
@@ -40,6 +40,27 @@ export function useRealtime(handlers, { enabled = true, pollInterval = FALLBACK_
       pollTimerRef.current = setTimeout(poll, pollInterval);
     }
   }, [pollInterval, user?.uid]);
+
+  const unsubscribe = useCallback(() => {
+    isMountedRef.current = false;
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setStatus("disconnected");
+  }, []);
 
   useEffect(() => {
     if (!enabled || !user) {
@@ -102,7 +123,7 @@ export function useRealtime(handlers, { enabled = true, pollInterval = FALLBACK_
 
     connect();
 
-    const fallbackTimer = setTimeout(() => {
+    fallbackTimerRef.current = setTimeout(() => {
       if (isMountedRef.current && currentEventSource?.readyState !== EventSource.OPEN) {
         setStatus("fallback-polling");
         currentEventSource?.close();
@@ -111,13 +132,9 @@ export function useRealtime(handlers, { enabled = true, pollInterval = FALLBACK_
     }, 10000);
 
     return () => {
-      isMountedRef.current = false;
-      clearTimeout(fallbackTimer);
-      clearTimeout(reconnectTimerRef.current);
-      clearTimeout(pollTimerRef.current);
-      eventSourceRef.current?.close();
+      unsubscribe();
     };
-  }, [enabled, user, startPolling]);
+  }, [enabled, user, startPolling, unsubscribe]);
 
-  return { status };
+  return { status, unsubscribe };
 }

@@ -32,12 +32,12 @@ export function useRealtimeAttendance({ classFilter } = {}) {
     });
   }, [classFilter]);
 
-  useRealtime(
+  const { unsubscribe } = useRealtime(
     { onAttendance: handleAttendance },
     { enabled: !!user }
   );
 
   const clearCheckIns = useCallback(() => setLiveCheckIns([]), []);
 
-  return { liveCheckIns, clearCheckIns };
+  return { liveCheckIns, clearCheckIns, unsubscribe };
 }

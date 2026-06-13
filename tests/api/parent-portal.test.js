@@ -545,6 +545,7 @@ describe("Parent Portal Feature Tests", () => {
     });
 
     it("GET /api/parent/dashboard: should trigger low-attendance notification if a child has < 75% attendance", async () => {
+      store.attendance_records = {};
       // Link student-2 (who has 60% attendance) to parent-1
       store.parent_student_links["parent-1_student-2"] = {
         parentId: "parent-1",
@@ -567,6 +568,7 @@ describe("Parent Portal Feature Tests", () => {
     });
 
     it("GET /api/parent/dashboard: should not duplicate low-attendance notification if one already exists in last 24h", async () => {
+      store.attendance_records = {};
       store.parent_student_links["parent-1_student-2"] = {
         parentId: "parent-1",
         studentId: "student-2",
